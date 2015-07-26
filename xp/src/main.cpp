@@ -29,6 +29,16 @@ void dump_uint16_t( FILE *fp, const void *pData, size_t size )
 	fprintf( fp, "};\n" );
 };
 
+//! uint32_t
+void dump_uint32_t( FILE *fp, const void *pData, size_t size )
+{
+	uint32_t* p = (uint32_t*)pData;
+	
+	fprintf( fp, "struct body {\n" );
+	fprintf( fp, "  uint32_t Value = 0x%x;\n", *p );
+	fprintf( fp, "};\n" );
+};
+
 
 class gccAttributeManager
 {
@@ -36,7 +46,6 @@ protected:
 	std::map<uint16_t, dumpValuePtr> m_traitMap;
 	std::map<uint16_t, std::string> m_idTbl;
 	
-	const char* getIdString( uint16_t id );
 	void dumpValueHex( FILE *fp, const void *pData, size_t size );
 	
 public:
@@ -44,6 +53,8 @@ public:
 	virtual ~gccAttributeManager();
 	
 	bool loadIdStringTable();
+	const char* getIdString( uint16_t id );
+	uint16_t getStringId( const char* str );
 	void dumpValue( int id, FILE *fp, const void *pData, size_t size );
 };
 
@@ -51,8 +62,10 @@ public:
 
 gccAttributeManager::gccAttributeManager()
 {
+	loadIdStringTable();
+	
 	m_traitMap[1] = dump_uint8_t;
-	m_traitMap[3] = dump_uint16_t;
+	m_traitMap[3] = dump_uint32_t;
 }
 
 gccAttributeManager::~gccAttributeManager()
@@ -78,6 +91,16 @@ const char* gccAttributeManager::getIdString( uint16_t id )
 		return str;
 	}
 	return m_idTbl[id].c_str();
+}
+
+uint16_t gccAttributeManager::getStringId( const char* str )
+{
+	for ( std::map<uint16_t, std::string>::iterator it = m_idTbl.begin(); it != m_idTbl.end(); it++ ) {
+		if ( strcmp(it->second.c_str(), str) == 0 ) {
+			return it->first;
+		}
+	}
+	return 0;
 }
 
 bool gccAttributeManager::loadIdStringTable()
@@ -154,8 +177,8 @@ void gccAttributeManager::dumpValueHex( FILE *fp, const void *pData, size_t size
 int main( int argc, char **argv )
 {
 	gccAttributeManager* pManager = new gccAttributeManager();
-	pManager->loadIdStringTable();
 	
+	// dump
 	uint8_t val1 = 55;
 	pManager->dumpValue( 1, stdout, &val1, sizeof(val1) );
 	
@@ -165,8 +188,16 @@ int main( int argc, char **argv )
 	const char *str = "0123456789ABCDEFGHIJKLMNOPQ";
 	pManager->dumpValue( 5, stdout, str, strlen(str));
 	
-	delete pManager;
 	
+	// get id from string.
+	const char *str1 = "str_piyopiyo";
+	fprintf( stderr, "[STR=>ID] %s => %u\n", str1, pManager->getStringId(str1) );
+	
+	const char *str2 = "str_piyo";
+	fprintf( stderr, "[STR=>ID] %s => %u\n", str2, pManager->getStringId(str2) );
+	
+	
+	delete pManager;
 	return 0;
 }
 
