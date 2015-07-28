@@ -40,19 +40,24 @@ void dump_uint32_t( FILE *fp, const void *pData, size_t size )
 };
 
 
+//-------------------------------------------------------
+// gccAttributeManager
+//-------------------------------------------------------
 class gccAttributeManager
 {
 protected:
 	std::map<uint16_t, dumpValuePtr> m_traitMap;
 	std::map<uint16_t, std::string> m_idTbl;
+	std::list<uint16_t> m_idList;
 	
+	bool loadIdStringTable();
+	bool loadIdList();
 	void dumpValueHex( FILE *fp, const void *pData, size_t size );
 	
 public:
 	gccAttributeManager();
 	virtual ~gccAttributeManager();
 	
-	bool loadIdStringTable();
 	const char* getIdString( uint16_t id );
 	uint16_t getStringId( const char* str );
 	void dumpValue( int id, FILE *fp, const void *pData, size_t size );
@@ -63,6 +68,7 @@ public:
 gccAttributeManager::gccAttributeManager()
 {
 	loadIdStringTable();
+	loadIdList();
 	
 	m_traitMap[1] = dump_uint8_t;
 	m_traitMap[3] = dump_uint32_t;
@@ -125,7 +131,7 @@ bool gccAttributeManager::loadIdStringTable()
 			fprintf(stderr, "invalid line - %s\n", line);
 			continue;
 		}
-		uint16_t id = (uint16_t)atoi(pFirst);
+		uint16_t id = (uint16_t)strtoul(pFirst, NULL, 0);
 		m_idTbl[id] = pSecond;
 	}
 
@@ -136,6 +142,39 @@ bool gccAttributeManager::loadIdStringTable()
 	std::map<uint16_t, std::string>::iterator it = m_idTbl.begin();
 	for ( ; it != m_idTbl.end(); ++it ) {
 		fprintf(stderr, "%u = %s\n", it->first, it->second.c_str());
+	}
+	fprintf(stderr, "---\n");
+	
+	return true;
+}
+
+bool gccAttributeManager::loadIdList()
+{
+	char szResource[] = "./id_list.txt";
+	char line[1024] = "";
+	char *pFirst = NULL, *pSecond = NULL;
+
+	FILE *fp = fopen(szResource, "r");
+	if ( !fp ) {
+		fprintf(stderr, "cannot open %s\n", szResource);
+		return false;
+	}
+	
+	while ( fgets(line, sizeof(line), fp) ) {
+		trim(line);
+		uint16_t id = getStringId(line);
+		if ( id != 0 ) {
+			m_idList.push_back(id);
+		}
+	}
+	
+	fclose(fp);
+
+	//debug
+	fprintf(stderr, "---\n");
+	std::map<uint16_t, std::string>::iterator it = m_idList.begin();
+	for ( ; it != m_idList.end(); ++it ) {
+		fprintf(stderr, "%u\n", *it);
 	}
 	fprintf(stderr, "---\n");
 	
