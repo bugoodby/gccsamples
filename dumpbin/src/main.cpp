@@ -16,7 +16,7 @@ void dumpValueHex( FILE *fp, const void *pData, size_t size )
 	
 	lineBuf[49] = '\n';
 	
-	fprintf( fp, "struct dump {\n" );
+	fprintf( fp, "DUMP START\n" );
 	
 	do {
 		line = ( size > 16 ) ? 16 : size;
@@ -34,7 +34,7 @@ void dumpValueHex( FILE *fp, const void *pData, size_t size )
 		
 	} while ( size > 0 );
 	
-	fprintf( fp, "};\n" );
+	fprintf( fp, "DUMP END\n" );
 }
 
 void dumpbin( const char *fname )
@@ -101,13 +101,13 @@ void usage(void)
 //--------------------------------------------------------------
 // parse command line
 //--------------------------------------------------------------
-bool parse_cmdline( int argc, char **argv, GLOBALPROP &gprop )
+bool parse_cmdline( int argc, char **argv )
 {
 	bool ret = true;
 	char *s = NULL;
 
 	/* initialize */
-	gprop.argc = 0;
+	g_gprop.file = NULL;
 	
 	/* parse */
 	while ( --argc > 0 ) {
@@ -127,9 +127,7 @@ bool parse_cmdline( int argc, char **argv, GLOBALPROP &gprop )
 			}
 		}
 		else {
-			gprop.argc = argc;
-			gprop.argv = argv;
-			break;
+			if ( !g_gprop.file ) g_gprop.file = s;
 		}
 	}
 
@@ -139,11 +137,15 @@ bool parse_cmdline( int argc, char **argv, GLOBALPROP &gprop )
 
 int main( int argc, char **argv )
 {
-	if ( !parse_cmdline(argc, argv, g_gprop) ) {
+	if ( !parse_cmdline(argc, argv) ) {
+		return -1;
+	}
+	if ( !prop()->file ) {
+		fprintf(stderr, "too few arguments.\n");
 		return -1;
 	}
 	
-	dumpbin( prop()->argv[0] );
+	dumpbin( prop()->file );
 	
 	return 0;
 }

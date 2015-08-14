@@ -2,42 +2,33 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdarg.h>
 #include <map>
+#include <list>
 #include <string>
+#include "debuglog.h"
+
+#include "handler.h"
 
 
-typedef void (*dumpValuePtr)( FILE *fp, const void *pData, size_t size );
-
-
-//! uint8_t
-void dump_uint8_t( FILE *fp, const void *pData, size_t size )
+//-------------------------------------------------------
+// Singleton Class
+//-------------------------------------------------------
+/*
+class Singleton
 {
-	uint8_t* p = (uint8_t*)pData;
+private:
+	Singleton(){}
+	Singleton( const Singleton &other ){}
+	Singleton &operator=( const Singleton &other ){ return *this; }
 	
-	fprintf( fp, "struct body {\n" );
-	fprintf( fp, "  uint8_t Value = %u;\n", *p );
-	fprintf( fp, "};\n" );
+public:
+	static Singleton &getInstance() {
+		static Singleton instance;
+		return instance;
+	}
 };
-
-//! uint16_t
-void dump_uint16_t( FILE *fp, const void *pData, size_t size )
-{
-	uint16_t* p = (uint16_t*)pData;
-	
-	fprintf( fp, "struct body {\n" );
-	fprintf( fp, "  uint16_t Value = %u;\n", *p );
-	fprintf( fp, "};\n" );
-};
-
-//! uint32_t
-void dump_uint32_t( FILE *fp, const void *pData, size_t size )
-{
-	uint32_t* p = (uint32_t*)pData;
-	
-	fprintf( fp, "struct body {\n" );
-	fprintf( fp, "  uint32_t Value = 0x%x;\n", *p );
-	fprintf( fp, "};\n" );
-};
+*/
 
 
 //-------------------------------------------------------
@@ -82,13 +73,25 @@ void gccAttributeManager::dumpValue( int id, FILE *fp, const void *pData, size_t
 {
 	fprintf( fp, "[ %s (%u) ]\n", getIdString(id), id );
 	
+#if 1
+	dumpValuePtr ptr = getDumpFunc(id);
+	if ( ptr ) {
+		ptr( fp, pData, size );
+	} else {
+		dumpValueHex( fp, pData, size );
+	}
+#else
 	if ( m_traitMap.find(id) == m_traitMap.end() ) {
 		dumpValueHex( fp, pData, size );
 	} else {
 		m_traitMap[id]( fp, pData, size );
 	}
+#endif
 }
 
+//
+// 数値に対応する文字列を返す。見つからなかったら???を返す。
+//
 const char* gccAttributeManager::getIdString( uint16_t id )
 {
 	const char *str = "???";
@@ -99,6 +102,9 @@ const char* gccAttributeManager::getIdString( uint16_t id )
 	return m_idTbl[id].c_str();
 }
 
+//
+// 文字列に対応する数値を返す。見つからなかったら0を返す。
+//
 uint16_t gccAttributeManager::getStringId( const char* str )
 {
 	for ( std::map<uint16_t, std::string>::iterator it = m_idTbl.begin(); it != m_idTbl.end(); it++ ) {
@@ -109,6 +115,9 @@ uint16_t gccAttributeManager::getStringId( const char* str )
 	return 0;
 }
 
+//
+// 「数値,文字列」形式の複数行ファイルをstd::mapに読み込む
+//
 bool gccAttributeManager::loadIdStringTable()
 {
 	char szResource[] = "./id_table.txt";
@@ -117,7 +126,7 @@ bool gccAttributeManager::loadIdStringTable()
 
 	FILE *fp = fopen(szResource, "r");
 	if ( !fp ) {
-		fprintf(stderr, "cannot open %s\n", szResource);
+		ERR("cannot open %s\n", szResource);
 		return false;
 	}
 	
@@ -128,7 +137,7 @@ bool gccAttributeManager::loadIdStringTable()
 			*pSecond++ = '\0';
 			pSecond = strtok(pSecond, "\r\n\0");
 		} else {
-			fprintf(stderr, "invalid line - %s\n", line);
+			WARN("invalid line - %s\n", line);
 			continue;
 		}
 		uint16_t id = (uint16_t)strtoul(pFirst, NULL, 0);
@@ -138,30 +147,32 @@ bool gccAttributeManager::loadIdStringTable()
 	fclose(fp);
 	
 	//debug
-	fprintf(stderr, "---\n");
+	INFO("---\n");
 	std::map<uint16_t, std::string>::iterator it = m_idTbl.begin();
 	for ( ; it != m_idTbl.end(); ++it ) {
-		fprintf(stderr, "%u = %s\n", it->first, it->second.c_str());
+		INFO("%u = %s\n", it->first, it->second.c_str());
 	}
-	fprintf(stderr, "---\n");
+	INFO("---\n");
 	
 	return true;
 }
 
+//
+// 「文字列」形式の複数行ファイルをstd::listに読み込む
+//  （mapを参照し、文字列を数値に変換）
+//
 bool gccAttributeManager::loadIdList()
 {
 	char szResource[] = "./id_list.txt";
 	char line[1024] = "";
-	char *pFirst = NULL, *pSecond = NULL;
 
 	FILE *fp = fopen(szResource, "r");
 	if ( !fp ) {
-		fprintf(stderr, "cannot open %s\n", szResource);
+		ERR("cannot open %s\n", szResource);
 		return false;
 	}
 	
 	while ( fgets(line, sizeof(line), fp) ) {
-		trim(line);
 		uint16_t id = getStringId(line);
 		if ( id != 0 ) {
 			m_idList.push_back(id);
@@ -171,16 +182,19 @@ bool gccAttributeManager::loadIdList()
 	fclose(fp);
 
 	//debug
-	fprintf(stderr, "---\n");
-	std::map<uint16_t, std::string>::iterator it = m_idList.begin();
+	INFO("---\n");
+	std::list<uint16_t>::iterator it = m_idList.begin();
 	for ( ; it != m_idList.end(); ++it ) {
-		fprintf(stderr, "%u\n", *it);
+		INFO("%u\n", *it);
 	}
-	fprintf(stderr, "---\n");
+	INFO("---\n");
 	
 	return true;
 }
 
+//
+// 16進ダンプ
+//
 void gccAttributeManager::dumpValueHex( FILE *fp, const void *pData, size_t size )
 {
 	const char szHexArray[] = "0123456789ABCDEF";
@@ -191,7 +205,7 @@ void gccAttributeManager::dumpValueHex( FILE *fp, const void *pData, size_t size
 	
 	lineBuf[49] = '\n';
 	
-	fprintf( fp, "struct dump {\n" );
+	fprintf( fp, "{\n" );
 	
 	do {
 		line = ( size > 16 ) ? 16 : size;
@@ -212,20 +226,59 @@ void gccAttributeManager::dumpValueHex( FILE *fp, const void *pData, size_t size
 	fprintf( fp, "};\n" );
 }
 
+//-------------------------------------------------------
+
+
+struct AttributeHandler_uint8_t
+{
+	void dump( FILE *fp, const void *pData )
+	{
+		uint8_t* p = (uint8_t*)pData;
+		
+		DUMP_LINE( "struct body {\n" );
+		DUMP_LINE( "  uint8_t Value = %u;\n", *p );
+		DUMP_LINE( "};\n" );
+	};
+	
+	void* load( FILE *fp )
+	{
+		uint8_t *pBuffer = (uint8_t*)malloc(sizeof(uint8_t));
+		if ( !pBuffer ) {
+			return NULL;
+		}
+		
+		set_uint8_t(fp, *pBuffer);
+		return pBuffer;
+	};
+};
+static AttributeHandler_uint8_t ah_uint8_t;
+
+
+//-------------------------------------------------------
 
 int main( int argc, char **argv )
 {
 	gccAttributeManager* pManager = new gccAttributeManager();
 	
+	FILE *fp = fopen("./dump.txt", "w");
+	
 	// dump
 	uint8_t val1 = 55;
-	pManager->dumpValue( 1, stdout, &val1, sizeof(val1) );
+	pManager->dumpValue( 1, fp, &val1, sizeof(val1) );
 	
 	uint32_t val2 = 0x300001;
-	pManager->dumpValue( 3, stdout, &val2, sizeof(val2) );
+	pManager->dumpValue( 3, fp, &val2, sizeof(val2) );
 	
-	const char *str = "0123456789ABCDEFGHIJKLMNOPQ";
-	pManager->dumpValue( 5, stdout, str, strlen(str));
+	USIZE32 val3 = { 0x12345678, 0x23456789 };
+	pManager->dumpValue( 4, fp, &val3, sizeof(val3));
+	
+	STRING8 val4 = { 3, "" };
+	memset(val4.string, '.', sizeof(val4.string));
+	val4.string[254] = '*';
+	pManager->dumpValue( 5, fp, &val4, sizeof(val4));
+	
+	fclose(fp);
+	
 	
 	
 	// get id from string.

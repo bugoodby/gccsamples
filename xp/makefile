@@ -1,5 +1,5 @@
 CC=g++
-WARNS=-Wall -Werror
+WARNS=-Wall
 COPTS=-O2
 CDEFS=
 CFLAGS=-c

@@ -13,8 +13,7 @@
 /*----------------------------------------*/
 
 typedef struct _GLOBALPROP {
-	int argc;					/* number of input files */
-	char** argv;				/* pointer to a file name array */
+	char* file;
 } GLOBALPROP;
 
 
