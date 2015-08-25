@@ -16,7 +16,8 @@ typedef void (*dumpValuePtr)( FILE *fp, const void *pData, size_t size );
 typedef void* (*loadValuePtr)( FILE *fp );
 
 //#define DUMP_LINE( fmt, ... ) { fprintf( fp, (fmt), ## __VA_ARGS__ ); }
-#define DUMP_LINE( fmt, ... ) { dump_line( fp, "#" fmt, ## __VA_ARGS__ ); }
+//#define DUMP_LINE( fmt, ... ) { dump_line( fp, "#" fmt, ## __VA_ARGS__ ); }
+#define DUMP_LINE( fmt, ... ) { dump_line( fp, fmt, ## __VA_ARGS__ ); }
 
 void dump_line( FILE *fp, const char* format, ... )
 {
