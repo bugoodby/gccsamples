@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "../src/LineUtility.h"
 #include "../src/StringList.h"
+#include "../src/handler.h"
 
 #define TEST_ASSERT(condition)                             \
 	if ( (condition) ) {                                   \
@@ -284,15 +285,82 @@ public:
 	void run() {
 		init();
 		
-		test_1();
-		test_2();
+		test_is_identifier();
+		test_lex();
 		
 		term();
 	}
 	
-	void test_1() {
+	void test_is_identifier() {
+		TEST_ASSERT(is_identifier('*') == true);
+		TEST_ASSERT(is_identifier('=') == true);
+		TEST_ASSERT(is_identifier(';') == true);
+		TEST_ASSERT(is_identifier('A') == false);
+		TEST_ASSERT(is_identifier('{') == false);
+		TEST_ASSERT(is_identifier('\0') == false);
+	}
+	
+	void test_lex() {
+		char str[1024] = "";
+		StringList tokens;
 		
-
+		//Test:
+		strcpy(str, "int a = 1;");
+		lex(str, tokens);
+		TEST_ASSERT( strcmp(tokens.getNext(), "int") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "a") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "=") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "1") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), ";") == 0 );
+		tokens.clear();
+		
+		//Test:
+		strcpy(str, "char * string=\"##############\";");
+		lex(str, tokens);
+		TEST_ASSERT( strcmp(tokens.getNext(), "char") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "*") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "string") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "=") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "\"##############\"") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), ";") == 0 );
+		tokens.clear();
+		
+		//Test:
+		strcpy(str, "char *string=\"\";");
+		lex(str, tokens);
+		TEST_ASSERT( strcmp(tokens.getNext(), "char") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "*") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "string") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "=") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "\"\"") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), ";") == 0 );
+		tokens.clear();
+		
+		//Test:
+		strcpy(str, "char * string ====\"###");
+		lex(str, tokens);
+		TEST_ASSERT( strcmp(tokens.getNext(), "char") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "*") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "string") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "====") == 0 );
+		TEST_ASSERT( strcmp(tokens.getNext(), "\"###") == 0 );
+		TEST_ASSERT( tokens.getNext() == NULL );
+		tokens.clear();
+		
+		//Test:
+		strcpy(str, "");
+		lex(str, tokens);
+		TEST_ASSERT( tokens.getNext() == NULL );
+		tokens.clear();
+		
+		//Test:
+		strcpy(str, "aaa");
+		lex(str, tokens);
+		TEST_ASSERT( strcmp(tokens.getNext(), "aaa") == 0 );
+		tokens.clear();
+	}
+};
+	
 int main( int argc, char **argv )
 {
 	LineUtilityTester tester;
@@ -301,6 +369,8 @@ int main( int argc, char **argv )
 	StringListTester tester2;
 	tester2.run();
 	
+	HandlerTester tester3;
+	tester3.run();
 	
 	return 0;
 }

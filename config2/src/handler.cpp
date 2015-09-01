@@ -85,7 +85,7 @@ bool lex( char* line, StringList &tokens )
 			do {
 				line++;
 			} while ( *line != '\0' && *line != '\"' );
-			line++;
+			if ( *line != '\0' ) { line++; }
 		}
 		else if ( is_identifier(*pBegin) ) {
 			while ( is_identifier(*line) ) line++;
