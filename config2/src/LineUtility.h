@@ -9,17 +9,19 @@
 class LineUtility
 {
 public:
-	static void trim( char* line ) {
-		size_t i = 0, j = 0;
+	static void trim( char *line ) {
 		if ( !line ) return;
-		if ( line[0] == '\0' ) return;
+		if ( *line == '\0' ) return;
 		
-		for ( i = strlen(line); i > 0 && isspace(line[i-1]); --i );
-		line[i] = '\0';
-		for( i = 0; isspace(line[i]); ++i );
-		if ( i > 0 ) {
-			while ( line[i] != '\0' ) { line[j++] = line[i++]; }
-			line[j] = '\0';
+		char *ptr = line;
+		while ( *ptr != '\0' ) { ptr++; }
+		for ( ptr--; ptr >= line && isspace(*ptr); ptr-- ) {}
+		*(ptr + 1) = '\0';
+		
+		ptr = line;
+		while ( isspace(*ptr) ) { ptr++; }
+		if ( ptr > line ) {
+			memmove(line, ptr, strlen(ptr)+1);
 		}
 	}
 
@@ -41,20 +43,19 @@ public:
 
 	static void strip_double_quote( char* line ) {
 		if ( !line ) return;
-		if ( line[0] == '\0' ) return;
+		if ( *line == '\0' ) return;
 		
 		size_t len = strlen(line);
-		if ( line[0] == '\"' && line[len-1] == '\"' ) {
+		if ( len >= 2 && line[0] == '\"' && line[len-1] == '\"' ) {
 			line[len-1] = '\0';
 			memmove(line, &line[1], len-1);
 		}
 	}
 	
 	static bool get_key_value( char *line, char* &key, char* &value ) {
-		char *pos = NULL;
-		
 		if ( !line ) return false;
 		
+		char *pos = NULL;
 		if ( (pos = strstr(line, "=")) != NULL ) {
 			*pos = '\0';
 			key = line;

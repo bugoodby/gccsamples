@@ -85,6 +85,7 @@ bool lex( char* line, StringList &tokens )
 			do {
 				line++;
 			} while ( *line != '\0' && *line != '\"' );
+			line++;
 		}
 		else if ( is_identifier(*pBegin) ) {
 			while ( is_identifier(*line) ) line++;
@@ -112,20 +113,18 @@ bool getValueDeclaration( StringList &strlist, char* valueStr )
 		StringList tokens;
 		lex(line, tokens);
 		
-		if ( tokens.count() >= 5 ) {
-			int i = 0;
-			char *pType = tokens.at(i++);
-			char *pName = tokens.at(i++);
-			if ( strcmp(pName, "*") == 0 ) pName = tokens.at(i++);
-			char *pEqual = tokens.at(i++);
-			char *pValue = tokens.at(i++);
-			char *pTerm = tokens.at(i++);
-			
-			if ( pType && pName && strcmp(pEqual, "=") == 0 && pValue && strcmp(pTerm, ";") == 0 ) {
-				strcpy(valueStr, pValue);
-				fprintf(stderr, "  [%s] [%s] = [%s]\n", pType, pName, pValue);
-				return true;
-			}
+		int i = 0;
+		char *pType = tokens.at(i++);
+		char *pName = tokens.at(i++);
+		if ( pName && strcmp(pName, "*") == 0 ) pName = tokens.at(i++);
+		char *pEqual = tokens.at(i++);
+		char *pValue = tokens.at(i++);
+		char *pTerm = tokens.at(i++);
+		
+		if ( pType && pName && strcmp(pEqual, "=") == 0 && pValue && strcmp(pTerm, ";") == 0 ) {
+			strcpy(valueStr, pValue);
+			fprintf(stderr, "  [%s] [%s] = [%s]\n", pType, pName, pValue);
+			return true;
 		}
 		fprintf(stderr, "  not value decration.\n");
 	}

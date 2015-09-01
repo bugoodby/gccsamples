@@ -55,9 +55,24 @@ public:
 		TEST_ASSERT( strcmp(str, "a") == 0 );
 		
 		//Test:
+		strcpy(str, "a             \n");
+		LineUtility::trim(str);
+		TEST_ASSERT( strcmp(str, "a") == 0 );
+		
+		//Test:
+		strcpy(str, "                   a");
+		LineUtility::trim(str);
+		TEST_ASSERT( strcmp(str, "a") == 0 );
+		
+		//Test:
 		strcpy(str, "   abc   \r\n");
 		LineUtility::trim(str);
 		TEST_ASSERT( strcmp(str, "abc") == 0 );
+		
+		//Test:
+		strcpy(str, "月 火 水 木 金 土 日");
+		LineUtility::trim(str);
+		TEST_ASSERT( strcmp(str, "月 火 水 木 金 土 日") == 0 );
 		
 		//Test:
 		strcpy(str, "\t  \t あ　　　い   \t  \t\r\n");
@@ -199,6 +214,7 @@ public:
 		init();
 		
 		test_1();
+		test_2();
 		
 		term();
 	}
@@ -235,14 +251,47 @@ public:
 		StringList strlist;
 		char str[1024];
 		
+		bool ret = true;
 		for ( int i = 0; i < 10000; i++ ) {
 			sprintf(str, "string string string %u\n", i);
-			TEST_ASSERT( strlist.push(str) == true );
+//			TEST_ASSERT( strlist.push(str) == true );
+			ret &= strlist.push(str);
 		}
+		TEST_ASSERT(ret==true);
 		
-		TEST_ASSERT( strcmp(strlist.at(9000), "string string string 9000]n") == 0 );
+		TEST_ASSERT( strlist.count() == 10000 );
+		TEST_ASSERT( strcmp(strlist.at(9000), "string string string 9000\n") == 0 );
+		
+		strlist.clear();
+		
+		TEST_ASSERT( strlist.count() == 0 );
+		
+		TEST_ASSERT( strlist.push("clear and push") == true );
+		TEST_ASSERT( strcmp(strlist.getNext(), "clear and push") == 0 );
 	}
 };
+
+class HandlerTester
+{
+public:
+	void init() {
+		printf("**** TEST HandlerTester START ***\n");
+	};
+	void term() {
+		printf("**** TEST HandlerTester END ***\n");
+	};
+	
+	void run() {
+		init();
+		
+		test_1();
+		test_2();
+		
+		term();
+	}
+	
+	void test_1() {
+		
 
 int main( int argc, char **argv )
 {

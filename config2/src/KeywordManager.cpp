@@ -58,7 +58,8 @@ bool KeywordManager::loadIdStringTable()
 		pSecond = strchr(line, ',');
 		if ( pSecond ) {
 			*pSecond++ = '\0';
-			pSecond = strtok(pSecond, "\r\n\0");
+			char *ptr = strchr(pSecond, '\n');
+			if ( ptr ) { *ptr = '\0'; }
 		} else {
 			fprintf(stderr, "invalid line - %s\n", line);
 			continue;

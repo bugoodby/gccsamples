@@ -1,6 +1,7 @@
 #ifndef __STRING_LIST_H__
 #define __STRING_LIST_H__
 
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -50,12 +51,14 @@ public:
 			return false;
 		}
 		if ( m_count >= m_size ) {
-			if ( x_reallocMemory( m_size + m_blocksize ) ) {
+			if ( !x_reallocMemory( m_size + m_blocksize ) ) {
+				printf("realloc error!\n");
 				return false;
 			}
 		}
 		char *p = strdup(str);
 		if ( !p ) {
+			printf("strdup error!\n");
 			return false;
 		}
 		m_buffer[m_count++] = p;
