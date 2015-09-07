@@ -10,6 +10,7 @@ protected:
 	uint16_t m_id;
 	size_t m_size;
 
+#if 0
 	virtual bool skipToEnd( StringList &strlist ) {
 		char* line = NULL;
 		while ( (line = strlist.getNext()) != NULL ) {
@@ -20,6 +21,7 @@ protected:
 		}
 		return true;
 	}
+#endif
 	
 public:
 	ValueLoader() : m_id(0), m_size(0) {};
@@ -73,6 +75,10 @@ public:
 	
 	bool load( StringList &strlist, void* &pData )
 	{
+		if ( m_size == 0 ) {
+			return false;
+		}
+		
 		uint8_t *pBuffer = (uint8_t*)malloc(m_size);
 		if ( ! pBuffer ) {
 			fprintf(stderr, "could not allocate enough memory (size=%lu)\n", m_size);
@@ -81,16 +87,18 @@ public:
 		pData = pBuffer;
 		
 		char* line = NULL;
+		size_t cnt = 0;
 		while ( (line = strlist.getNext()) != NULL )
 		{
+#if 0
 			if ( strcasecmp(line, "END") == 0 ) {
-				fprintf(stderr, "found [END]\n");
+//				fprintf(stderr, "found [END]\n");
 				break;
 			}
+#endif
 			
 			char *line_ptr = line;
 			uint8_t octet = 0, nibble = 0;
-			size_t cnt = 0;
 			bool first_flag = true;
 			
 			while ( *line_ptr != '\0' ) {
@@ -107,7 +115,7 @@ public:
 			}
 		}
 		
-		skipToEnd(strlist);
+//		skipToEnd(strlist);
 		return true;
 	}
 };
@@ -122,25 +130,27 @@ public:
 	bool load( StringList &strlist, void* &pData ) {
 		bool ret = false;
 		
+#if 0
 		StringList valueLines;
 		char* line = NULL;
 		while ( (line = strlist.getNext()) != NULL ) {
 			if ( strcasecmp(line, "END") == 0 ) {
-				fprintf(stderr, "found [END]\n");
+//				fprintf(stderr, "found [END]\n");
 				break;
 			}
 			valueLines.push(line);
 		}
+#endif
 		
 		loadValuePtr ptr = getLoadFunc(m_id);
 		if ( ptr ) {
-			ret = ptr(valueLines, pData);
+			ret = ptr(strlist, pData);
 		} else {
 			fprintf(stderr, "[ERROR] id=%u: not support struct value.\n", m_id);
 			ret = false;
 		}
 		
-		skipToEnd(strlist);
+//		skipToEnd(strlist);
 		return ret;
 	}
 };
@@ -160,7 +170,6 @@ public:
 		
 		ret = load(strlist, p);
 		
-		skipToEnd(strlist);
 		return ret;
 	}
 };
@@ -173,7 +182,7 @@ public:
 	static ValueLoader* create( const char *type, uint16_t id, size_t size ) {
 		ValueLoader* pLoader = NULL;
 		
-		if ( strcmp(type, "Hex") == 0 ) {
+		if ( strcmp(type, "Dump") == 0 ) {
 			pLoader = new HexValueLoader(id, size);
 		}
 		else if ( strcmp(type, "Struct") == 0 ) {

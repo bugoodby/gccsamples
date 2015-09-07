@@ -1,3 +1,10 @@
+#ifdef UNITTEST
+#include "../test/unit.h"
+#define malloc g_mallocUT
+#define realloc g_reallocUT
+#define strdup g_strdupUT
+#endif
+
 #include "ConfigFileReader.h"
 #include "LineUtility.h"
 #include "ValueLoader.h"
@@ -13,13 +20,11 @@ bool ConfigFileReader::checkSection( const char* line )
 	bool ret = false;
 	
 	if ( !line ) return false;
-	if ( line[0] == '\0' ) return false;
 	
 	size_t len = strlen(line);
-	if ( line[0] == '[' && line[len-1] == ']' ) {
+	if ( len > 2 && line[0] == '[' && line[len-1] == ']' ) {
 		ret = true;
 	}
-	
 	return ret;
 }
 
@@ -41,9 +46,9 @@ bool ConfigFileReader::getLine( char *buffer, size_t bufsize )
 
 bool ConfigFileReader::parseSectionData( StringList &strlist, SECTION_DATA &sectData ) 
 {
-	fprintf(stderr, "%s: start\n", __func__ );
+//	fprintf(stderr, "%s: start\n", __func__ );
 	
-	bool ret = true;
+	bool ret = false;
 	memset(&sectData, 0, sizeof(sectData));
 	
 	char* line = NULL;
@@ -53,7 +58,7 @@ bool ConfigFileReader::parseSectionData( StringList &strlist, SECTION_DATA &sect
 			fprintf(stderr, "  not key-value\n");
 			continue;
 		}
-		fprintf(stderr, "  Key-Value: [%s] = [%s]\n", key, value);
+//		fprintf(stderr, "  Key-Value: [%s] = [%s]\n", key, value);
 		
 		if ( strcmp(key, "key") == 0 ) {
 			sectData.id = static_cast<uint16_t>(strtoul(value, NULL, 0));
@@ -63,17 +68,13 @@ bool ConfigFileReader::parseSectionData( StringList &strlist, SECTION_DATA &sect
 		}
 		else if ( strcmp(key, "Value") == 0 ) {
 			ValueLoader *pLoader = ValueLoaderFactory::create(value, sectData.id, sectData.size);
-			if ( !pLoader ) {
-				ret = false;
-				break;
+			if ( pLoader ) {
+				ret = pLoader->load(strlist, sectData.value);
+				delete pLoader;
 			}
-			if ( !pLoader->load(strlist, sectData.value) ) {
-				ret = false;
-			}
-			delete pLoader;
 		}
 	}
-	fprintf(stderr, "%s: end\n", __func__ );
+//	fprintf(stderr, "%s: end ret=%d\n", __func__, ret );
 	return ret;
 }
 
@@ -112,8 +113,12 @@ bool ConfigFileReader::read( std::list<SECTION_DATA> &list )
 	StringList lines;
 	SECTION_DATA data = {0};
 	
+	if ( !m_fp ) {
+		return false;
+	}
+	
 	while ( getLine(line, sizeof(line)) ) {
-		fprintf(stderr, "%s: LINE:%s\n", __func__, line);
+//		fprintf(stderr, "%s: LINE:%s\n", __func__, line);
 		
 		if ( checkSection(line) ) {
 			if ( parseSectionData(lines, data) ) {

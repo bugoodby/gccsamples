@@ -1,8 +1,8 @@
 CC=g++
 WARNS=-Wall -Werror
 COPTS=-O2
-CDEFS=
-CFLAGS=-c
+CDEFS=-DUNITTEST
+CFLAGS=-c -fno-exceptions
 
 TARGET=test
 

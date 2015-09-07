@@ -2,7 +2,7 @@
 #define __CONFIGFILEREADER_H__
 
 #include "main.h"
-#include "stringList.h"
+#include "StringList.h"
 #include <stdio.h>
 #include <list>
 

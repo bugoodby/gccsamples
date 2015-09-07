@@ -1,5 +1,6 @@
 #include "handler.h"
 #include "StringList.h"
+#include "LineUtility.h"
 #include <stdarg.h>
 #include <ctype.h>
 
@@ -9,23 +10,13 @@
 #define WARN( fmt, ... )  DEBUG_LOG( "[WARN] %s: " fmt, __func__, ## __VA_ARGS__)
 #define ERR( fmt, ... )   DEBUG_LOG( "[ERR ] %s(%d) %s: " fmt, __FILE__, __LINE__, __func__, ## __VA_ARGS__)
 
-typedef struct {
-	uint32_t x;
-	uint32_t y;
-} USIZE32;
-
-typedef struct {
-	uint8_t count;
-	char string[255];
-} STRING8;
-
-
 //-----------------------------------------------------------------------
 
-//#define DUMP_LINE( fmt, ... ) { fprintf( fp, (fmt), ## __VA_ARGS__ ); }
+#define DUMP_LINE( fmt, ... ) { fprintf( fp, (fmt), ## __VA_ARGS__ ); }
 //#define DUMP_LINE( fmt, ... ) { dump_line( fp, "#" fmt, ## __VA_ARGS__ ); }
-#define DUMP_LINE( fmt, ... ) { dump_line( fp, fmt, ## __VA_ARGS__ ); }
+//#define DUMP_LINE( fmt, ... ) { dump_line( fp, fmt, ## __VA_ARGS__ ); }
 
+#if 0
 void dump_line( FILE *fp, const char* format, ... )
 {
 	va_list argp;
@@ -34,6 +25,7 @@ void dump_line( FILE *fp, const char* format, ... )
 	vfprintf( stdout, format, argp );
 	va_end( argp );
 }
+#endif
 
 //-----------------------------------------------------------------------
 
@@ -74,7 +66,7 @@ bool is_identifier( char c )
 	}
 };
 
-bool lex( char* line, StringList &tokens ) 
+void lex( char* line, StringList &tokens ) 
 {
 	while ( *line != '\0' ) {
 		while ( isspace(*line) ) line++;
@@ -96,19 +88,19 @@ bool lex( char* line, StringList &tokens )
 		if ( size != 0 ) {
 			char tmp = *line;
 			*line = '\0';
-			fprintf(stderr, "  lex...[%s]\n", pBegin);
+//			fprintf(stderr, "  lex...[%s]\n", pBegin);
 			tokens.push(pBegin);
 			*line = tmp;
 		}
 	}
-	return true;
+	return;
 }
 
 bool getValueDeclaration( StringList &strlist, char* valueStr ) 
 {
 	char* line = NULL;
 	while ( (line = strlist.getNext()) != NULL ) {
-		fprintf(stderr, "###%s\n", line);
+//		fprintf(stderr, "###%s\n", line);
 		
 		StringList tokens;
 		lex(line, tokens);
@@ -123,7 +115,7 @@ bool getValueDeclaration( StringList &strlist, char* valueStr )
 		
 		if ( pType && pName && strcmp(pEqual, "=") == 0 && pValue && strcmp(pTerm, ";") == 0 ) {
 			strcpy(valueStr, pValue);
-			fprintf(stderr, "  [%s] [%s] = [%s]\n", pType, pName, pValue);
+//			fprintf(stderr, "  [%s] [%s] = [%s]\n", pType, pName, pValue);
 			return true;
 		}
 		fprintf(stderr, "  not value decration.\n");
@@ -161,6 +153,7 @@ bool set_string( StringList &strlist, char *buffer, size_t size )
 		return false;
 	}
 	
+	LineUtility::strip_double_quote(valueStr);
 	strncpy(buffer, valueStr, size);
 	return true;
 }
@@ -264,7 +257,7 @@ void dump_STRING8( FILE *fp, const void *pData, size_t size )
 	STRING8* p = (STRING8*)pData;
 	
 	DUMP_LINE( "struct body {\n" );
-	DUMP_LINE( "  uint8_t count = 0x%u;\n", p->count );
+	DUMP_LINE( "  uint8_t count = %u;\n", p->count );
 	DUMP_LINE( "  char* string = \"%.*s\";\n", p->count, p->string );
 	DUMP_LINE( "};\n" );
 };
@@ -291,6 +284,7 @@ typedef struct {
 
 static FUNC_INFO g_funcInfoTbl[] = {
 	FUNC_INFO_RECORD( 1, uint8_t )
+	FUNC_INFO_RECORD( 2, uint16_t )
 	FUNC_INFO_RECORD( 3, uint32_t )
 	FUNC_INFO_RECORD( 4, USIZE32 )
 	FUNC_INFO_RECORD( 5, STRING8 )

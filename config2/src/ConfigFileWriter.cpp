@@ -3,7 +3,7 @@
 #include <string.h>
 
 //
-// 16iƒ_ƒ“ƒv
+// 16é€²ãƒ€ãƒ³ãƒ—
 //
 void ConfigFileWriter::dumpValueHex( FILE *fp, const void *pData, size_t size )
 {
@@ -15,38 +15,34 @@ void ConfigFileWriter::dumpValueHex( FILE *fp, const void *pData, size_t size )
 	
 	lineBuf[49] = '\n';
 	
-	fprintf( fp, "{\n" );
-	
 	do {
 		line = ( size > 16 ) ? 16 : size;
 		size -= line;
 		
-		for ( int i = 0; i < 49; i++ ) lineBuf[i] = ' ';
-		pHexPtr = lineBuf + 2;
+		pHexPtr = lineBuf;
 		
 		for ( l = 0; l < line; l++, p++ ) {
 			*pHexPtr++ = szHexArray[ *p >> 4 ];
 			*pHexPtr++ = szHexArray[ *p & 0xF ];
-			pHexPtr++;
+			*pHexPtr++ = ' ';
 		}
-		fprintf( fp, lineBuf );
+		*pHexPtr = '\0';
+		fprintf( fp, "  \"%s\"\n", lineBuf );
 		
 	} while ( size > 0 );
-	
-	fprintf( fp, "};\n" );
 }
 
-bool ConfigFileWriter::writeValueData( uint16_t id, void *pData, size_t size )
+void ConfigFileWriter::writeValueData( uint16_t id, void *pData, size_t size )
 {
-	bool ret = false;
-	
 	dumpValuePtr ptr = getDumpFunc(id);
 	if ( ptr ) {
+		fprintf( m_fp, "Value = Struct\n" );
 		ptr( m_fp, pData, size );
 	} else {
+		fprintf( m_fp, "Value = Dump\n" );
 		dumpValueHex( m_fp, pData, size );
 	}
-	return ret;
+	fprintf( m_fp, "END\n" );
 }
 
 ConfigFileWriter::ConfigFileWriter() : m_fp(NULL)
@@ -84,13 +80,13 @@ bool ConfigFileWriter::write( std::list<SECTION_DATA> &list )
 	
 	std::list<SECTION_DATA>::iterator it = list.begin();
 	for ( ; it != list.end(); it++ ) {
-		fprintf(m_fp, "id : %u\n", it->id);
-		fprintf(m_fp, "aaa : %u\n", it->aaa);
-		fprintf(m_fp, "bbb : %u\n", it->bbb);
-		fprintf(m_fp, "ccc : %u\n", it->ccc);
-		fprintf(m_fp, "size : %u\n", it->size);
+		fprintf(m_fp, "[Hoge]\n");
+		fprintf(m_fp, "key = %u\n", it->id);
+		fprintf(m_fp, "size = %u\n", it->size);
 		
 		writeValueData(it->id, it->value, it->size);
+		
+		fprintf(m_fp, "\n");
 	}
 	
 	return true;

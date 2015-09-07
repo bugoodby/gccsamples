@@ -14,14 +14,6 @@
 /* OPTION Structure                       */
 /*----------------------------------------*/
 
-typedef struct _GLOBALPROP {
-	char* file;
-} GLOBALPROP;
-
-
-extern GLOBALPROP g_gprop;
-inline GLOBALPROP* prop() { return &g_gprop; }
-
 
 
 typedef struct {

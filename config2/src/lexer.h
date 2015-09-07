@@ -62,7 +62,7 @@ public:
 			s = pBegin;
 			*m_ptr = tmp;
 		}
-		fprintf(stderr, "  lex...[%s]\n", s.ptr());
+//		fprintf(stderr, "  lex...[%s]\n", s.ptr());
 		return s;
 	}
 };

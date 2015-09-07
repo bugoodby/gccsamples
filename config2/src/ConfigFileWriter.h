@@ -11,7 +11,7 @@ protected:
 	FILE *m_fp;
 	
 	void dumpValueHex( FILE *fp, const void *pData, size_t size );
-	bool writeValueData( uint16_t id, void *pData, size_t size );
+	void writeValueData( uint16_t id, void *pData, size_t size );
 
 public:
 	ConfigFileWriter();

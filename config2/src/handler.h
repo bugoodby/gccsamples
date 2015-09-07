@@ -12,9 +12,19 @@ dumpValuePtr getDumpFunc( uint16_t id );
 loadValuePtr getLoadFunc( uint16_t id );
 
 
-bool is_identifier( char c );
-bool lex( char* line, StringList &tokens );
+void lex( char* line, StringList &tokens );
 bool getValueDeclaration( StringList &strlist, char* valueStr );
+
+typedef struct {
+	uint32_t x;
+	uint32_t y;
+} USIZE32;
+
+typedef struct {
+	uint8_t count;
+	char string[255];
+} STRING8;
+
 
 
 #endif
