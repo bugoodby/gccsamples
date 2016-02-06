@@ -65,7 +65,7 @@ $(TARGET2): $(OBJS2)
 
 .PHONY: clean
 clean:
-	-rm -f $(TARGET1) $(TARGET2) $(OBJS) ./*~ ./src/dumpbin/*~ ./src/packbin/*~ $(OBJS:.o=.gcno) $(OBJS:.o=.gcda)
+	-rm -f $(TARGET1) $(TARGET2) $(OBJS1) $(OBJS2) ./*~ ./src/dumpbin/*~ ./src/packbin/*~ $(OBJS:.o=.gcno) $(OBJS:.o=.gcda)
 
 .c.o:
 	$(CC) $(CFLAGS) $(INCLUDES) -I$(dir $@) -o $@ $<
