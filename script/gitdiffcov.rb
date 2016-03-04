@@ -12,26 +12,29 @@ class GitDiffFile
 	def parseHunk( hunk )
 		line_num = 1
 		diff_start = 1
-		
 		prev_type = :others
 		
+		# 先頭の範囲情報を解析
+		rangeInfo = hunk.shift
+		if ( /^@@ -(\d+),(\d+) \+(\d+),(\d+)/ =~ rangeInfo )
+#			printf("!!! %d, %d, %d, %d\n", $1, $2, $3, $4)
+			line_num = $3.to_i - 1
+		else
+			puts "[ERROR] invalid hunk! - " + rangeInfo
+		end
+		
+		# +位置を確認
 		hunk.each {|line|
-			if ( /^@@ -(\d+),(\d+) \+(\d+),(\d+)/ =~ line )
-#				printf("!!! %d, %d, %d, %d\n", $1, $2, $3, $4)
-				line_num = $3.to_i - 1
-				prev_type = :others
+			if ( line[0] == "+" )
+				line_num += 1
+				diff_start = line_num if ( prev_type == :others )
+				prev_type = :add
 			else
-				if ( line[0] == "+" )
-					line_num += 1
-					diff_start = line_num if ( prev_type == :others )
-					prev_type = :add
-				else
-					if ( prev_type == :add )
-						@diffBlocks << DiffInfo.new(diff_start, line_num)
-					end
-					line_num += 1 if ( line[0] != "-" )
-					prev_type = :others
+				if ( prev_type == :add )
+					@diffBlocks << DiffInfo.new(diff_start, line_num)
 				end
+				line_num += 1 if ( line[0] != "-" )
+				prev_type = :others
 			end
 		}
 		if ( prev_type == :add )
@@ -62,32 +65,40 @@ end
 
 commit = ARGV[0] || "HEAD"
 
+#git diff表示
+#puts `git diff #{commit} -w`
+
 #ソースファイル一覧
 srcfiles = []
 Dir.glob("**/*") {|f|
-	srcfiles << f.chomp if ( /\.\(c|cpp|cxx|h|hpp\)$/ =~ f )
+	srcfiles << f.chomp if ( /\.(c|cpp|cxx|h|hpp|hxx)$/ =~ f )
 }
 p srcfiles
 
-#git diffで差分のあるファイル一覧（削除ファイル除く）
+#差分ファイル一覧
 modfiles = []
-IO.popen("git diff #{commit} --name-only --diff-filter=ACMUX").each {|line|
-	modfiles << line.chomp
-}
+if ( ARGV[1] )
+	modfiles << ARGV[1]
+else
+	IO.popen("git diff #{commit} -w --name-only --diff-filter=ACMUX").each {|line|
+		modfiles << line.chomp
+	}
+end
 p modfiles
 
 # ソースファイルの差分箇所にlcovコメント挿入
+puts "[[[ insert comment to diff points ]]]"
 modfiles.each {|f|
 	if srcfiles.include?(f)
-		puts "+++ #{f}"
+		puts " +++ #{f}"
 		gdfile = GitDiffFile.new(f)
 		
 		hunk = [];
-		IO.popen("git diff #{commit} -- #{f}").each {|line|
+		IO.popen("git diff #{commit} -w -- #{f}").each {|line|
 			if ( hunk.length == 0 )
-				hunk << line if ( /^@@ / =~ line )
+				hunk << line if ( line[0, 3] == "@@ " )
 			else
-				if ( /^@@ / =~ line )
+				if ( line[0, 3] == "@@ " )
 					gdfile.parseHunk(hunk)
 					hunk = [line]
 				else
@@ -98,14 +109,16 @@ modfiles.each {|f|
 		gdfile.parseHunk(hunk)
 		
 		gdfile.dumpDiffInfo
-#		gdfile.insertComment
+		gdfile.insertComment
 	else
-		puts "+++ #{f} [skip]"
+		puts " +++ #{f} [skip]"
 	end
 }
 
 # 全ソースファイルの先頭と末尾にlcovコメント挿入
+puts "[[[ insert comment to first/last line ]]]"
 srcfiles.each {|f|
+	puts " +++ #{f}"
 	`sed -i -e "1i // LCOV_EXCL_START" #{f}`
 	`echo "// LCOV_EXCL_STOP" >> #{f}`
 }
