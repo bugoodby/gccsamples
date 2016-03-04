@@ -65,6 +65,11 @@ end
 
 commit = ARGV[0] || "HEAD"
 
+if !File.exist?(".git")
+	puts "gitリポジトリ直下で実行してください"
+	exit
+end
+
 #git diff表示
 #puts `git diff #{commit} -w`
 
