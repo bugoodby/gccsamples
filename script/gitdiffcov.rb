@@ -56,16 +56,20 @@ class GitDiffFile
 			lines[b.startLine - 1, 0] = "// LCOV_EXCL_STOP"
 		}
 		File.open(@file, "w") {|out|
-			lines.each {|l|
-				out.puts l
-			}
+			lines.each {|l| out.puts l }
 		}
 	end
 end
 
-def insertLcovExclComment( f )
-	`sed -i -e "1i // LCOV_EXCL_START" #{f}`
-	`echo "// LCOV_EXCL_STOP" >> #{f}`
+def insertLcovExclComment( file )
+	lines = File.open(file, "r+").readlines
+	lines.unshift("// LCOV_EXCL_START")
+	lines.push("// LCOV_EXCL_STOP")
+	File.open(file, "w") {|out|
+		lines.each {|l| out.puts l }
+	}
+#	`sed -i -e "1i // LCOV_EXCL_START" #{f}`
+#	`echo "// LCOV_EXCL_STOP" >> #{f}`
 end
 
 
@@ -74,8 +78,8 @@ params = {}
 
 OptionParser.new("Usage: ruby #{File.basename($0)} [options] [<commit>] [<filepath>]") do |opt|
 	opt.on('-h', '--help', 'show this message') { puts opt; exit }
-	opt.on('-n', '--dry-run', '実際のファイル変更は行わない') {|v| params[:n] = v}
-	opt.on('-d', '--diff-only', '差分の前後にのみコメント挿入') {|v| params[:d] = v}
+	opt.on('-n', '--dry-run', '(debug) 実際のファイル変更は行わない') {|v| params[:n] = v}
+	opt.on('-d', '--diff-only', '(debug) ファイル先頭末尾のコメント挿入しない') {|v| params[:d] = v}
 	opt.parse!
 end
 
