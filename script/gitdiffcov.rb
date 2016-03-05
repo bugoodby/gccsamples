@@ -68,19 +68,33 @@ def insertLcovExclComment( file )
 	File.open(file, "w") {|out|
 		lines.each {|l| out.puts l }
 	}
-#	`sed -i -e "1i // LCOV_EXCL_START" #{f}`
-#	`echo "// LCOV_EXCL_STOP" >> #{f}`
 end
 
+def checkExclude( excludes, f )
+	ret = false
+	excludes.each {|e|
+		if ( f.start_with?(e) )
+			puts " ! exclude: " + f
+			ret = true
+		end
+	}
+	return ret
+end
 
 ### main ###
 params = {}
+params[:e] = []
 
 OptionParser.new("Usage: ruby #{File.basename($0)} [options] [<commit>] [<filepath>]") do |opt|
 	opt.on('-h', '--help', 'show this message') { puts opt; exit }
+	opt.on('-e VALUE', '--exclude VALUE', '除外パスの指定') {|v| params[:e] << v}
 	opt.on('-n', '--dry-run', '(debug) 実際のファイル変更は行わない') {|v| params[:n] = v}
 	opt.on('-d', '--diff-only', '(debug) ファイル先頭末尾のコメント挿入しない') {|v| params[:d] = v}
-	opt.parse!
+	begin
+		opt.parse!
+	rescue
+		puts opt; exit
+	end
 end
 
 commit = ARGV[0] || "HEAD"
@@ -90,15 +104,11 @@ if !File.exist?(".git")
 	exit
 end
 
-#git diff表示
-#puts `git diff #{commit} -w`
-
 #ソースファイル一覧
 srcfiles = []
 Dir.glob("**/*") {|f|
 	srcfiles << f.chomp if ( /\.(c|cpp|cxx|h|hpp|hxx)$/ =~ f )
 }
-#p srcfiles
 
 #差分ファイル一覧
 modfiles = []
@@ -109,7 +119,10 @@ else
 		modfiles << line.chomp
 	}
 end
-#p modfiles
+#除外パスにマッチするものを除く
+if ( params[:e].length > 0 )
+	modfiles.delete_if {|item| checkExclude(params[:e], item) }
+end
 
 # ソースファイルの差分箇所にlcovコメント挿入
 puts "[[[ insert comment to diff points ]]]"
