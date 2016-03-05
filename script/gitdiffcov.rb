@@ -1,5 +1,6 @@
 #!/usr/bin/ruby
 # -*- coding: utf-8 -*-
+require "optparse"
 
 DiffInfo = Struct.new("DiffInfo", :startLine, :endLine)
 
@@ -44,7 +45,7 @@ class GitDiffFile
 
 	def dumpDiffInfo
 		@diffBlocks.each_with_index {|b, i|
-			printf("   %d : (%d, %d)\n", i, b.startLine, b.endLine)
+			printf("   %d: (%d - %d)\n", i, b.startLine, b.endLine)
 		}
 	end
 	
@@ -62,6 +63,21 @@ class GitDiffFile
 	end
 end
 
+def insertLcovExclComment( f )
+	`sed -i -e "1i // LCOV_EXCL_START" #{f}`
+	`echo "// LCOV_EXCL_STOP" >> #{f}`
+end
+
+
+### main ###
+params = {}
+
+OptionParser.new("Usage: ruby #{File.basename($0)} [options] [<commit>] [<filepath>]") do |opt|
+	opt.on('-h', '--help', 'show this message') { puts opt; exit }
+	opt.on('-n', '--dry-run', '実際のファイル変更は行わない') {|v| params[:n] = v}
+	opt.on('-d', '--diff-only', '差分の前後にのみコメント挿入') {|v| params[:d] = v}
+	opt.parse!
+end
 
 commit = ARGV[0] || "HEAD"
 
@@ -78,7 +94,7 @@ srcfiles = []
 Dir.glob("**/*") {|f|
 	srcfiles << f.chomp if ( /\.(c|cpp|cxx|h|hpp|hxx)$/ =~ f )
 }
-p srcfiles
+#p srcfiles
 
 #差分ファイル一覧
 modfiles = []
@@ -89,7 +105,7 @@ else
 		modfiles << line.chomp
 	}
 end
-p modfiles
+#p modfiles
 
 # ソースファイルの差分箇所にlcovコメント挿入
 puts "[[[ insert comment to diff points ]]]"
@@ -114,17 +130,17 @@ modfiles.each {|f|
 		gdfile.parseHunk(hunk)
 		
 		gdfile.dumpDiffInfo
-		gdfile.insertComment
+		gdfile.insertComment unless ( params[:n] )
 	else
 		puts " +++ #{f} [skip]"
 	end
 }
 
 # 全ソースファイルの先頭と末尾にlcovコメント挿入
-puts "[[[ insert comment to first/last line ]]]"
-srcfiles.each {|f|
-	puts " +++ #{f}"
-	`sed -i -e "1i // LCOV_EXCL_START" #{f}`
-	`echo "// LCOV_EXCL_STOP" >> #{f}`
-}
-
+unless ( params[:d] )
+	puts "[[[ insert comment to first/last line ]]]"
+	srcfiles.each {|f|
+		puts " +++ #{f}"
+		insertLcovExclComment(f) unless ( params[:n] )
+	}
+end
