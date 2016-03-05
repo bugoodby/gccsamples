@@ -76,6 +76,7 @@ def checkExclude( excludes, f )
 		if ( f.start_with?(e) )
 			puts " ! exclude: " + f
 			ret = true
+			break
 		end
 	}
 	return ret
