@@ -61,7 +61,7 @@ class GitDiffFile
 	end
 end
 
-def insertLcovExclComment( file )
+def insertCommentHeadTail( file )
 	lines = File.open(file, "r").readlines
 	lines.unshift("// LCOV_EXCL_START")
 	lines.push("// LCOV_EXCL_STOP")
@@ -86,12 +86,12 @@ end
 params = {}
 params[:e] = []
 
-OptionParser.new("Usage: ruby #{File.basename($0)} [options] [<commit>]") do |opt|
+OptionParser.new("Usage: ruby #{File.basename($0)} [options...] [<commit>]") do |opt|
 	opt.on('-h', '--help', 'show this message') { puts opt; exit }
 	opt.on('-e VALUE', '--exclude VALUE', '除外パスの指定') {|v| params[:e] << v}
 	opt.on('-n', '--dry-run', '(debug) 実際のファイル変更は行わない') {|v| params[:n] = v}
 	opt.on('-d', '--diff-only', '(debug) ファイル先頭末尾のコメント挿入しない') {|v| params[:d] = v}
-	opt.on('-f', '--file', '指定ファイルのみ変更') {|v| params[:f] = v}
+	opt.on('-f VALUE', '--file VALUE', '指定ファイルのみ変更') {|v| params[:f] = v; params[:d] = true}
 	begin
 		opt.parse!
 	rescue
@@ -108,13 +108,9 @@ end
 
 #ソースファイル一覧
 srcfiles = []
-if ( params[:f] )
-	srcfiles << params[:f]
-else
-	Dir.glob("**/*") {|f|
-		srcfiles << f.chomp if ( /\.(c|cpp|cxx|h|hpp|hxx)$/ =~ f )
-	}
-end
+Dir.glob("**/*") {|f|
+	srcfiles << f.chomp if ( /\.(c|cpp|cxx|h|hpp|hxx)$/ =~ f )
+}
 
 #差分ファイル一覧
 modfiles = []
@@ -155,6 +151,8 @@ modfiles.each {|f|
 		
 		gdfile.dumpDiffInfo
 		gdfile.insertComment unless ( params[:n] )
+		
+		insertCommentHeadTail(f) if ( params[:f] ) #ファイル指定の場合、先頭末尾にも挿入
 	else
 		puts " +++ #{f} [skip]"
 	end
@@ -165,6 +163,6 @@ unless ( params[:d] )
 	puts "[[[ insert comment to first/last line ]]]"
 	srcfiles.each {|f|
 		puts " +++ #{f}"
-		insertLcovExclComment(f) unless ( params[:n] )
+		insertCommentHeadTail(f) unless ( params[:n] )
 	}
 end
