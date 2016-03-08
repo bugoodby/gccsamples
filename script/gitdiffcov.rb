@@ -62,7 +62,7 @@ class GitDiffFile
 end
 
 def insertLcovExclComment( file )
-	lines = File.open(file, "r+").readlines
+	lines = File.open(file, "r").readlines
 	lines.unshift("// LCOV_EXCL_START")
 	lines.push("// LCOV_EXCL_STOP")
 	File.open(file, "w") {|out|
@@ -86,11 +86,12 @@ end
 params = {}
 params[:e] = []
 
-OptionParser.new("Usage: ruby #{File.basename($0)} [options] [<commit>] [<filepath>]") do |opt|
+OptionParser.new("Usage: ruby #{File.basename($0)} [options] [<commit>]") do |opt|
 	opt.on('-h', '--help', 'show this message') { puts opt; exit }
 	opt.on('-e VALUE', '--exclude VALUE', '除外パスの指定') {|v| params[:e] << v}
 	opt.on('-n', '--dry-run', '(debug) 実際のファイル変更は行わない') {|v| params[:n] = v}
 	opt.on('-d', '--diff-only', '(debug) ファイル先頭末尾のコメント挿入しない') {|v| params[:d] = v}
+	opt.on('-f', '--file', '指定ファイルのみ変更') {|v| params[:f] = v}
 	begin
 		opt.parse!
 	rescue
@@ -107,14 +108,18 @@ end
 
 #ソースファイル一覧
 srcfiles = []
-Dir.glob("**/*") {|f|
-	srcfiles << f.chomp if ( /\.(c|cpp|cxx|h|hpp|hxx)$/ =~ f )
-}
+if ( params[:f] )
+	srcfiles << params[:f]
+else
+	Dir.glob("**/*") {|f|
+		srcfiles << f.chomp if ( /\.(c|cpp|cxx|h|hpp|hxx)$/ =~ f )
+	}
+end
 
 #差分ファイル一覧
 modfiles = []
-if ( ARGV[1] )
-	modfiles << ARGV[1]
+if ( params[:f] )
+	modfiles << params[:f]
 else
 	IO.popen("git diff #{commit} -w --name-only --diff-filter=ACMUX").each {|line|
 		modfiles << line.chomp
@@ -124,6 +129,7 @@ end
 if ( params[:e].length > 0 )
 	modfiles.delete_if {|item| checkExclude(params[:e], item) }
 end
+
 
 # ソースファイルの差分箇所にlcovコメント挿入
 puts "[[[ insert comment to diff points ]]]"
