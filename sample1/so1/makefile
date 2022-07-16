@@ -1,4 +1,4 @@
-CC=g++
+CC=g++ -m32
 WARNS=-Wall -Werror
 COPTS=-O2
 CDEFS=
